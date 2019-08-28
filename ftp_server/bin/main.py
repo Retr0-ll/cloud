@@ -8,6 +8,7 @@ sys.path.append(BASE_DIR)
 import socketserver
 from core.server import MyTCPHandler
 from core.usermanagement import UserOpr
+from core.server import MySSLThreadingTCPServer
 
 if __name__ == '__main__':
 
@@ -25,7 +26,8 @@ if __name__ == '__main__':
             exit()
         elif choice == '1':
             HOST, PORT = "localhost", 9999
-            server = socketserver.ThreadingTCPServer((HOST, PORT), MyTCPHandler)
+            server = MySSLThreadingTCPServer((HOST, PORT), MyTCPHandler)
+            #server = socketserver.ThreadingTCPServer((HOST,PORT),MyTCPHandler)
             server.serve_forever()
         elif choice == '2':
             useropr = UserOpr()

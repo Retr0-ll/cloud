@@ -1,6 +1,8 @@
 # Author:Zheng Na
 
 import socketserver,sys,json,os,time,shutil
+from socketserver import ThreadingTCPServer
+import ssl
 import core.common
 
 def processbar(part, total):  ####进度条，运行会导致程序变慢
@@ -14,6 +16,21 @@ def timestamp_to_formatstringtime(timestamp):  ####时间戳转化为格式化�
     structtime = time.localtime(timestamp)
     formatstringtime = time.strftime("%Y%m%d %H:%M:%S",structtime)
     return formatstringtime
+
+class MySSLThreadingTCPServer(ThreadingTCPServer):
+    def get_request(self):
+
+        KEY_FILE = "server.key"
+        CERT_FILE = "server.crt"
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
+        context.verify_mode = ssl.CERT_NONE
+
+        sock, fromaddr = self.socket.accept()
+        sslsock = context.wrap_socket(sock, server_side=True)
+
+        return sslsock, fromaddr
+
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
 
@@ -461,7 +478,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                         msg = {
                             'state': False,
                             'position':'',
-                            'content':'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, need_size:%d' % (self.user_spacesize, current_size, self.user_spacesize - current_size, filesize - exits_file_size)
+                            'content':'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, need_size:%d' % (self.user_spacesize, current_size, self.user_spacesize - current_size, filesize - exist_file_size)
                         }
                         self.request.send(json.dumps(msg).encode('utf-8'))
                 else:
