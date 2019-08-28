@@ -1,7 +1,6 @@
-# Author:Zheng Na
-
 import socket,os,json,hashlib,sys,time,getpass,logging
 import core.settings
+from arc4 import ARC4
 
 def hashmd5(*args):  ####MD5加密
     m = hashlib.md5()
@@ -11,9 +10,9 @@ def hashmd5(*args):  ####MD5加密
 
 def processbar(part, total):  ####进度条，运行会导致程序变慢
     if total != 0:
-        done = int(50 * part / total)
-        sys.stdout.write("\r[%s%s]" % ('█' * done, '  ' * (50 - done)))  ####注意：一个方块对应2个空格
-        sys.stdout.write('{:.2%}'.format(part / total) + ' ' * 3 + str(part) + '/' + str(total))
+        #done = int(50 * part / total)
+        #sys.stdout.write("\r[%s%s]" % ('█' * done, '  ' * (50 - done)))  ####注意：一个方块对应2个空格
+        sys.stdout.write('\r{:.2%}'.format(part / total) + ' ' * 3 + str(part) + '/' + str(total))
         sys.stdout.flush()
 
 class FtpClient(object):
@@ -54,7 +53,7 @@ class FtpClient(object):
             else:
                 self.help()
 
-    def help(self):  ####帮助
+    def help(self, *args):  ####帮助
         msg = '''
          仅支持如下命令：
          ls
@@ -103,7 +102,7 @@ class FtpClient(object):
         elif len(cmd_split) == 2:
             dirname = cmd_split[1]
         else:
-            return help()
+            return self.help()
 
         msg = {
             "action": 'cd',
@@ -121,7 +120,7 @@ class FtpClient(object):
             }
             self.exec_linux_cmd(msg)
         else:
-            help()
+            self.help()
 
     def rm(self, *args):  ####删除文件
         cmd_split = args[0].split()
@@ -134,7 +133,7 @@ class FtpClient(object):
             }
             self.exec_linux_cmd(msg)
         else:
-            help()
+            self.help()
 
     def rmdir(self, *args):  ####删除目录
         cmd_split = args[0].split()
@@ -147,7 +146,7 @@ class FtpClient(object):
             }
             self.exec_linux_cmd(msg)
         else:
-            help()
+            self.help()
 
     def mv(self, *args):  ####实现功能：移动文件，移动目录，文件重命名，目录重命名
         cmd_split = args[0].split()
@@ -161,7 +160,7 @@ class FtpClient(object):
             }
             self.exec_linux_cmd(msg)
         else:
-            help()
+            self.help()
 
     def exec_linux_cmd(self, dict): ####用于后面调用linux命令
         logging.info(dict)  ####将发送给服务端的命令保存到日志中
@@ -186,7 +185,7 @@ class FtpClient(object):
             if override != 'True' and os.path.isfile(filepath):  ####判断下载目录是否已存在同名文件
                 override_tag = input('文件已存在，要覆盖文件请输入yes >>>:').strip()
                 if override_tag == 'yes':
-                    self.put('put %s True' % filename)
+                    self.get('get %s True' % filename)
                 else:
                     print('下载取消')
             else:
@@ -209,6 +208,11 @@ class FtpClient(object):
                     filesize = server_response['filesize']
                     filemd5 = server_response['filemd5']
                     receive_size = 0
+
+                    key = input("请输入之前上传存储此文件时使用的文件密码>>>:").strip()
+                    key = hashmd5(key)[5:-5] + key
+                    rc4_ = ARC4(key)
+
                     f = open(filepath, 'wb')
                     while filesize > receive_size:
                         if filesize - receive_size > 1024:
@@ -216,6 +220,7 @@ class FtpClient(object):
                         else:
                             size = filesize - receive_size
                         data = self.client.recv(size)
+                        data = rc4_.decrypt(data)
                         f.write(data)
                         receive_size += len(data)
                         processbar(receive_size, filesize)  ####打印进度条
@@ -228,7 +233,7 @@ class FtpClient(object):
                     else:
                         print('Error,文件接收异常！')
         else:
-            help()
+            self.help()
 
     def put(self, *args):  ####上传文件
         cmd_split = args[0].split()
@@ -271,11 +276,18 @@ class FtpClient(object):
                     server_response = self.client.recv(1024).decode('utf-8')
                     print(server_response)  ####注意：用于打印服务器反馈信息，例如磁盘空间不足信息，不能取消
                     if server_response == 'begin':
+
+                        key = input("请输入上传存储此文件的密码>>>:").strip()
+                        key = hashmd5(key)[5:-5] + key
+                        rc4 = ARC4(key)
+
                         f = open(filepath, 'rb')
                         send_size = 0
                         for line in f:
+                            cipher = rc4.encrypt(line)
+                            self.client.send(cipher)
+
                             send_size += len(line)
-                            self.client.send(line)
                             processbar(send_size, filesize)
                         else:
                             print('\r\n', "file upload success...")
@@ -349,7 +361,7 @@ class FtpClient(object):
             else:
                 print("文件未下载")
         else:
-            help()
+            self.help()
 
     def newput(self, *args):  ####上传文件，具有断点续传功能
         cmd_split = args[0].split()

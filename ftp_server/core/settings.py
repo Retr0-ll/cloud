@@ -1,5 +1,3 @@
-#Author:Zheng Na
-
 import os,configparser,logging
 
 ####读取配置文件####
