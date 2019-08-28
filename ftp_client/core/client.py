@@ -1,6 +1,10 @@
 import socket,os,json,hashlib,sys,time,getpass,logging
 import core.settings
+<<<<<<< HEAD
 from arc4 import ARC4
+=======
+import ssl
+>>>>>>> 3c63542e71bd2e19aebc193fc255c3820d87c246
 
 def hashmd5(*args):  ####MD5加密
     m = hashlib.md5()
@@ -17,9 +21,21 @@ def processbar(part, total):  ####进度条，运行会导致程序变慢
 
 class FtpClient(object):
     def __init__(self):
-        self.client = socket.socket()
+        self.ori_client = socket.socket()
+        #self.client = socket.socket()
+
+    def sslsock(self):#将socket打包成sslsocket
+        CA_FILE = "ca.crt"
+
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        context.check_hostname = False
+        context.load_verify_locations(CA_FILE)
+        context.verify_mode = ssl.CERT_REQUIRED
+
+        self.client = context.wrap_socket(self.ori_client, server_side=False)
 
     def connect(self, ip, port):  ####连接
+        self.sslsock()
         self.client.connect((ip, port))
 
     def auth(self):  ####用户认证
