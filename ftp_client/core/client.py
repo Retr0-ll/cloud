@@ -1,10 +1,7 @@
 import socket,os,json,hashlib,sys,time,getpass,logging
 import core.settings
-<<<<<<< HEAD
 from arc4 import ARC4
-=======
 import ssl
->>>>>>> 3c63542e71bd2e19aebc193fc255c3820d87c246
 
 def hashmd5(*args):  ####MD5加密
     m = hashlib.md5()
