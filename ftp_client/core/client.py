@@ -270,7 +270,7 @@ class FtpClient():
                     f.close()
                     # receive_filemd5 = os.popen('md5sum %s' % filepath).read().split()[0]
                     receive_filemd5 = 'a'  # Windows测试用
-                    print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
+                    # print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                     if receive_filemd5 == filemd5:
                         print('文件接收完成！')
                     else:
@@ -395,7 +395,7 @@ class FtpClient():
                     f.close()
                     # receive_filemd5 = os.popen('md5sum %s' % filepath).read().split()[0]
                     receive_filemd5 = 'a'  # Windows测试用
-                    print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
+                    # print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                     if receive_filemd5 == filemd5:
                         print('文件接收完成！')
                     else:
