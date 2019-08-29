@@ -1,9 +1,17 @@
 # Author:Zheng Na
 
-import socketserver, sys, json, os, time, shutil
+import socketserver, sys, json, os, time, shutil, hashlib
 from socketserver import ThreadingTCPServer
 from ftp_server.core import common, settings
+from ftp_server.core import usermanagement
 import ssl
+
+
+def hashmd5(*args):  # MD5加密
+    m = hashlib.md5()
+    m.update(str(*args).encode())
+    ciphertexts = m.hexdigest()  # 密文
+    return ciphertexts
 
 
 def processbar(part, total):  # 进度条，运行会导致程序变慢
@@ -21,11 +29,12 @@ def timestamp_to_formatstringtime(timestamp):  # 时间戳转化为格式化的�
 
 
 class MySSLThreadingTCPServer(ThreadingTCPServer):
+    KEY_FILE = "server.key"
+    CERT_FILE = "server.crt"
+
     def get_request(self):
-        KEY_FILE = "server.key"
-        CERT_FILE = "server.crt"
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
+        context.load_cert_chain(certfile=self.CERT_FILE, keyfile=self.KEY_FILE)
         context.verify_mode = ssl.CERT_NONE
 
         sock, fromaddr = self.socket.accept()
@@ -38,8 +47,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         auth_tag = False
         while auth_tag is not True:
-            auth_result = self.auth()  # 用户认证，如果通过，返回用户名，不通过为None
-            print("the authentication result is:", auth_result)
+            auth_result = self.register_and_auth()  # 用户认证，如果通过，返回用户名，不通过为None
+            # print("the authentication result is:", auth_result)
             if auth_result is not None:
                 self.username = auth_result['content']['username']
                 self.spacesize = auth_result['content']['spacesize']
@@ -69,19 +78,32 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 print("未支持指令：", action)
                 # logging.info('current direcory: %s' % self.positoion)
 
-    def auth(self):  # 用户认证
+    def register_and_auth(self):  # 用户注册和认证
         self.data = json.loads(self.request.recv(1024).decode('utf-8'))
         print(self.data)
+        recv_action = self.data['action']
         recv_username = self.data['username']
         recv_password = self.data['password']
+        if recv_action == 'register':
+            if recv_username is None:
+                self.request.send(b'no username')
+            elif recv_password is None:
+                self.request.send(b'no password')
+            elif common.query_user(recv_username) is not None:
+                self.request.send(b'user already exists')
+            else:
+                usermanagement.UserOpr.save_userinfo(recv_username, recv_password)
+                self.request.send(b'ok')
+                return
+
         query_result = common.query_user(recv_username)
         print(query_result)
         if query_result is None:
             self.request.send(b'user does not exist')
-        elif query_result['content']['password'] == recv_password:
+        elif query_result['content']['password'] == hashmd5(recv_password):
             self.request.send(b'ok')
             return query_result  # 返回查询结果
-        elif query_result['content']['password'] != recv_password:
+        elif query_result['content']['password'] != hashmd5(recv_password):
             self.request.send(b'password error')
         else:
             self.request.send(b'unkonwn error')

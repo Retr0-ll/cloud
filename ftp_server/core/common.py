@@ -14,4 +14,4 @@ def query_user(username):  # 查询用户
                 dict_info = {'filename': filename, 'content': content}
                 # print("查询结果：",dict)
                 return dict_info
-    return {}
+    return None

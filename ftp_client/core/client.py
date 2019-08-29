@@ -39,12 +39,34 @@ class FtpClient(object):
         self.sslsock()
         self.client.connect((ip, port))
 
+    def register(self):
+        username = input("请输入用户名>>>:").strip()
+        # password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
+        password = input("请输入密码>>>:").strip()  # Windows测试用
+        # password = hashmd5(password)
+        msg = {
+            'action': 'register',
+            'username': username,
+            'password': password
+        }
+
+        self.client.send(json.dumps(msg).encode('utf-8'))
+        server_response = self.client.recv(1024).decode('utf-8')
+        logging.info(server_response)
+        if server_response == 'ok':
+            print("注册成功！")
+            return True
+        else:
+            print(server_response)
+            return False
+
     def auth(self):  # 用户认证
         username = input("请输入用户名>>>:").strip()
         # password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
         password = input("请输入密码>>>:").strip()  # Windows测试用
-        password = hashmd5(password)
+        # password = hashmd5(password)
         msg = {
+            'action': 'auth',
             'username': username,
             'password': password
         }

@@ -2,7 +2,7 @@ import os, time, json, shutil, hashlib
 from ftp_server.core import settings, common
 
 
-def hashmd5(self, *args):
+def hashmd5(*args):
     m = hashlib.md5()
     m.update(str(*args).encode())
     ciphertexts = m.hexdigest()  # 密文
@@ -21,11 +21,11 @@ class UserOpr(object):
         else:
             print("用户不存在")
 
-    def save_userinfo(self, username):  # 保存用户信息
+    @staticmethod
+    def save_userinfo(username, password):  # 保存用户信息
         query_result = common.query_user(username)  # 检查是否已存在同名用户，如果没有查询结果应该为None
         if query_result is None:  # 用户不存在
             id = time.strftime('%Y%m%d%H%M%S', time.localtime())  # 将结构化时间（即元组）转换成格式化的字符串，比如20181211110148
-            password = '123456'
             userinfo = {
                 'username': username,
                 'id': id,
