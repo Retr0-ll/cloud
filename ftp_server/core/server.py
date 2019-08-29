@@ -2,8 +2,8 @@
 
 import socketserver,sys,json,os,time,shutil
 from socketserver import ThreadingTCPServer
+from ftp_server import core
 import ssl
-import core.common
 
 def processbar(part, total):  ####进度条，运行会导致程序变慢
     if total != 0:

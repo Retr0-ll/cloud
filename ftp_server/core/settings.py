@@ -11,6 +11,9 @@ cf.read(config_file,encoding='utf-8')  # 不编码会报错：UnicodeDecodeError
 if os.path.exists(cf.get('log', 'usermgr_log')):
     usermgr_log = cf.get('log', 'usermgr_log')
 else:
+    default_logdir = os.path.join(base_dir, 'log')
+    if not os.path.exists(default_logdir):
+        os.mkdir(default_logdir)
     usermgr_log = os.path.join(base_dir, 'log/usermgr.log')
 
 ####设定用户上传文件目录，这边用于创建用户家目录使用####

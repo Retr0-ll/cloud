@@ -12,6 +12,9 @@ cf.read(config_file, encoding='utf-8')
 if os.path.exists(cf.get('log', 'logfile')):
     logfile = cf.get('log', 'logfile')
 else:
+    default_logdir = os.path.join(base_dir,'log')
+    if not os.path.exists(default_logdir):
+        os.mkdir(default_logdir)
     logfile = os.path.join(base_dir, 'log/client.log')
 
 ####设定下载/上传目录####

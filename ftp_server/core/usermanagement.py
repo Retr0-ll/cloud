@@ -1,6 +1,6 @@
 #Author:Zheng Na
 import os,time,json,shutil,hashlib
-import core.common
+from ftp_server import core
 
 
 def hashmd5(self, *args):

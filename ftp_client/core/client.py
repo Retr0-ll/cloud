@@ -1,5 +1,5 @@
 import socket,os,json,hashlib,sys,time,getpass,logging
-import core.settings
+import ftp_client.core.settings as settings
 from arc4 import ARC4
 import ssl
 
@@ -194,7 +194,7 @@ class FtpClient(object):
         # print(override)
         if len(cmd_split) > 1:
             filename = cmd_split[1]
-            filepath = os.path.join(core.settings.download_dir, filename)
+            filepath = os.path.join(settings.download_dir, filename)
             if override != 'True' and os.path.isfile(filepath):  ####判断下载目录是否已存在同名文件
                 override_tag = input('文件已存在，要覆盖文件请输入yes >>>:').strip()
                 if override_tag == 'yes':
@@ -257,7 +257,7 @@ class FtpClient(object):
 
         if len(cmd_split) > 1:
             filename = cmd_split[1]
-            filepath = os.path.join(core.settings.download_dir, filename)
+            filepath = os.path.join(settings.download_dir, filename)
             if os.path.isfile(filepath):
                 filesize = os.path.getsize(filepath)  ####法1
                 # filesize = os.stat(filepath).st_size  ####法2
@@ -318,7 +318,7 @@ class FtpClient(object):
 
         if len(cmd_split) > 1:
             filename = cmd_split[1]
-            filepath = os.path.join(core.settings.download_dir, filename)
+            filepath = os.path.join(settings.download_dir, filename)
             if tag not in ('o', 'r'):
                 if os.path.isfile(filepath):  ####判断下载目录是否已存在同名文件
                     tag = input('文件已存在，要覆盖文件请输入o，要断点续传请输入r >>>:').strip()
@@ -385,7 +385,7 @@ class FtpClient(object):
 
         if len(cmd_split) > 1:
             filename = cmd_split[1]
-            filepath = os.path.join(core.settings.download_dir, filename)
+            filepath = os.path.join(settings.download_dir, filename)
             if os.path.isfile(filepath):
                 filesize = os.path.getsize(filepath)  ####法1
                 # filesize = os.stat(filepath).st_size  ####法2
@@ -455,7 +455,7 @@ class FtpClient(object):
 
         if len(cmd_split) > 1:
             filename = cmd_split[1]
-            filepath = os.path.join(core.settings.download_dir, filename)
+            filepath = os.path.join(settings.download_dir, filename)
             if os.path.isfile(filepath):
                 filesize = os.path.getsize(filepath)  ####法1
                 # filesize = os.stat(filepath).st_size  ####法2

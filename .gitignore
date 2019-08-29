@@ -1,16 +1,22 @@
 # 运行时缓存
-ftp_server/core/__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-user_info
+dist
+build
+
+# 日志文件
+*.log
+
 # 用户信息和文件
 ftp_server/user_files/
 ftp_server/user_info/
-# 服务日志
-ftp_server/log/
 
-
-
-# 运行时缓存
-ftp_client/core/__pycache__/
 # 下载文件
 ftp_client/temp/
-# 用户日志
-ftp_client/log/
+
+# IDE and venv
+.vscode/
+.idea/
+venv/

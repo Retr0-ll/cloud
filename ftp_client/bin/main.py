@@ -2,7 +2,7 @@ import os,sys
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  ####获取当前文件的上一级的上一级目录
 sys.path.append(BASE_DIR)
 
-from core.client import FtpClient
+from ftp_client.core.client import FtpClient
 
 if __name__ == '__main__':
     ftp = FtpClient()

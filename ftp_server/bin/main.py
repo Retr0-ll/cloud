@@ -6,9 +6,9 @@ sys.path.append(BASE_DIR)
 
 
 import socketserver
-from core.server import MyTCPHandler
-from core.usermanagement import UserOpr
-from core.server import MySSLThreadingTCPServer
+from ftp_server.core.server import MyTCPHandler
+from ftp_server.core.usermanagement import UserOpr
+from ftp_server.core.server import MySSLThreadingTCPServer
 
 if __name__ == '__main__':
 
