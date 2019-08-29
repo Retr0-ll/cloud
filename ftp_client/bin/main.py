@@ -12,7 +12,7 @@ if __name__ == '__main__':
     '''
 
     ftp = FtpClient()
-    ftp.connect('localhost', 9999)
+    ftp.connect('test.com', 9999)
     while True:
         print('\033[1;35m{}\033[0m'.format(mainpage))
         choice = input('>>>:')

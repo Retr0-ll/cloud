@@ -19,7 +19,7 @@ if __name__ == '__main__':
         if choice == 'q':
             exit()
         elif choice == '1':
-            HOST, PORT = "localhost", 9999
+            HOST, PORT = "0.0.0.0", 9999
             server = MySSLThreadingTCPServer((HOST, PORT), MyTCPHandler)
             # server = socketserver.ThreadingTCPServer((HOST,PORT),MyTCPHandler)
             server.serve_forever()
