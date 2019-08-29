@@ -1,25 +1,27 @@
 # Author:Zheng Na
 
-import socketserver,sys,json,os,time,shutil
+import socketserver, sys, json, os, time, shutil
 from socketserver import ThreadingTCPServer
-from ftp_server import core
+from ftp_server.core import common, settings
 import ssl
 
-def processbar(part, total):  ####进度条，运行会导致程序变慢
+
+def processbar(part, total):  # 进度条，运行会导致程序变慢
     if total != 0:
         done = int(50 * part / total)
-        sys.stdout.write("\r[%s%s]" % ('█' * done, '  ' * (50 - done)))  ####注意：一个方块对应2个空格
-        sys.stdout.write('{:.2%}'.format(part / total)+' '*3+str(part)+'/'+str(total))
+        sys.stdout.write("\r[%s%s]" % ('█' * done, '  ' * (50 - done)))  # 注意：一个方块对应2个空格
+        sys.stdout.write('{:.2%}'.format(part / total) + ' ' * 3 + str(part) + '/' + str(total))
         sys.stdout.flush()
 
-def timestamp_to_formatstringtime(timestamp):  ####时间戳转化为格式化的字符串
+
+def timestamp_to_formatstringtime(timestamp):  # 时间戳转化为格式化的字符串
     structtime = time.localtime(timestamp)
-    formatstringtime = time.strftime("%Y%m%d %H:%M:%S",structtime)
+    formatstringtime = time.strftime("%Y%m%d %H:%M:%S", structtime)
     return formatstringtime
+
 
 class MySSLThreadingTCPServer(ThreadingTCPServer):
     def get_request(self):
-
         KEY_FILE = "server.key"
         CERT_FILE = "server.crt"
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -33,24 +35,23 @@ class MySSLThreadingTCPServer(ThreadingTCPServer):
 
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
-
     def handle(self):
         auth_tag = False
-        while auth_tag != True:
-            auth_result = self.auth()  ####用户认证，如果通过，返回用户名，不通过为None
-            print("the authentication result is:",auth_result)
-            if auth_result != None:
+        while auth_tag is not True:
+            auth_result = self.auth()  # 用户认证，如果通过，返回用户名，不通过为None
+            print("the authentication result is:", auth_result)
+            if auth_result is not None:
                 self.username = auth_result['content']['username']
                 self.spacesize = auth_result['content']['spacesize']
                 auth_tag = True
-                print(self.username,self.spacesize)
-                user_homedir = os.path.join(core.settings.file_dir,self.username)
+                print(self.username, self.spacesize)
+                user_homedir = os.path.join(settings.file_dir, self.username)
                 if os.path.isdir(user_homedir):
-                    self.position = user_homedir  ####定锚，用户家目录
+                    self.position = user_homedir  # 定锚，用户家目录
                     print(self.position)
 
         while True:
-            print("当前连接：",self.client_address)
+            print("当前连接：", self.client_address)
             self.data = self.request.recv(1024).strip()
             print(self.data.decode())
             # logging.info(self.client_address)
@@ -65,36 +66,36 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 func = getattr(self, action)
                 func(cmd_dic)
             else:
-                print("未支持指令：",action)
+                print("未支持指令：", action)
                 # logging.info('current direcory: %s' % self.positoion)
 
-    def auth(self):  ####用户认证
+    def auth(self):  # 用户认证
         self.data = json.loads(self.request.recv(1024).decode('utf-8'))
         print(self.data)
         recv_username = self.data['username']
         recv_password = self.data['password']
-        query_result = core.common.query_user(recv_username)
+        query_result = common.query_user(recv_username)
         print(query_result)
-        if query_result == None:
+        if query_result is None:
             self.request.send(b'user does not exist')
         elif query_result['content']['password'] == recv_password:
             self.request.send(b'ok')
-            return query_result  ####返回查询结果
+            return query_result  # 返回查询结果
         elif query_result['content']['password'] != recv_password:
             self.request.send(b'password error')
         else:
             self.request.send(b'unkonwn error')
 
-    def pwd(self,*args):  ####查看当前目录
+    def pwd(self, *args):  # 查看当前目录
         current_position = self.position
-        result = current_position.replace(core.settings.file_dir,'')  ####截断目录信息，使用户只能看到自己的家目录信息
+        result = current_position.replace(settings.file_dir, '')  # 截断目录信息，使用户只能看到自己的家目录信息
         print(result)
         self.request.send(json.dumps(result).encode('utf-8'))
 
-    def ls(self,*args):  ####列出当前目录下的所有文件信息，类型，字节数，生成时间
-        result = ['%-20s%-7s%-10s%-23s' % ('filename', 'type', 'bytes', 'creationtime')]  ####信息标题 #没看懂
+    def ls(self, *args):  # 列出当前目录下的所有文件信息，类型，字节数，生成时间
+        result = ['%-20s%-7s%-10s%-23s' % ('filename', 'type', 'bytes', 'creationtime')]  # 信息标题 #没看懂
         for f in os.listdir(self.position):
-            f_abspath = os.path.join(self.position,f)  ####给出文件的绝对路径，不然程序会找不到文件
+            f_abspath = os.path.join(self.position, f)  # 给出文件的绝对路径，不然程序会找不到文件
             if os.path.isdir(f_abspath):
                 type = 'd'
             elif os.path.isfile(f_abspath):
@@ -103,44 +104,45 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 type = 'unknown'
             fsize = os.path.getsize(f_abspath)
             ftime = timestamp_to_formatstringtime(os.path.getctime(f_abspath))
-            result.append('%-20s%-7s%-10s%-23s' % (f,type,fsize,ftime))
+            result.append('%-20s%-7s%-10s%-23s' % (f, type, fsize, ftime))
         self.request.send(json.dumps(result).encode('utf-8'))
 
-    def du_calc(self): # 注意不能使用os.path.getsize('D:\python-study\s14')返回的是所有目录大小的和
+    def du_calc(self):  # 注意不能使用os.path.getsize('D:\python-study\s14')返回的是所有目录大小的和
         '''统计纯文件和目录占用空间大小，结果小于在OS上使用du -s查询，因为有一些（例如'.','..'）隐藏文件未包含在内'''
         totalsize = 0
         if os.path.isdir(self.position):
-            dirsize,filesize = 0,0
-            for root,dirs,files in os.walk(self.position):
-                for d in dirs:              #计算目录占用空间，Linux中每个目录占用4096bytes，实际上也可以按这个值来相加
-                    dirsize += os.path.getsize(os.path.join(root,d))
-                for f in files:             #计算文件占用空间
-                    filesize += os.path.getsize(os.path.join(root,f))
+            dirsize, filesize = 0, 0
+            for root, dirs, files in os.walk(self.position):
+                for d in dirs:  # 计算目录占用空间，Linux中每个目录占用4096bytes，实际上也可以按这个值来相加
+                    dirsize += os.path.getsize(os.path.join(root, d))
+                for f in files:  # 计算文件占用空间
+                    filesize += os.path.getsize(os.path.join(root, f))
             totalsize = dirsize + filesize
             return totalsize
 
-    def du(self,*args):  ####查看当前目录大小
+    def du(self, *args):  # 查看当前目录大小
         totalsize = self.du_calc()
-        result =  'current directory total sizes: %d' % totalsize
+        result = 'current directory total sizes: %d' % totalsize
         print(result)
         self.request.send(json.dumps(result).encode('utf-8'))
         return totalsize
 
-    def cd(self,*args):  ####切换目录，这个函数实在是没怎么看懂
+    def cd(self, *args):  # 切换目录，这个函数实在是没怎么看懂
         print(*args)
-        user_homedir = os.path.join(core.settings.file_dir,self.username)
+        user_homedir = os.path.join(settings.file_dir, self.username)
         cmd_dic = args[0]
         error_tag = False
         '''判断目录信息'''
         if cmd_dic['dirname'] == '':
             self.position = user_homedir
-        elif cmd_dic['dirname'] in ('.','/') or '//' in cmd_dic['dirname']:  ####'.','/','//','///+'匹配
+        elif cmd_dic['dirname'] in ('.', '/') or '//' in cmd_dic['dirname']:  # '.','/','//','///+'匹配
             pass
         elif cmd_dic['dirname'] == '..':
-            if user_homedir != self.position and user_homedir in self.position:  ####当前目录不是家目录，并且当前目录是家目录下的子目录
+            if user_homedir != self.position and user_homedir in self.position:  # 当前目录不是家目录，并且当前目录是家目录下的子目录
                 self.position = os.path.dirname(self.position)
-        elif '.' not in cmd_dic['dirname'] and os.path.isdir(os.path.join(self.position,cmd_dic['dirname'])):####'.' not in cmd_dict['dir'] 防止../..输入
-            self.position = os.path.join(self.position,cmd_dic['dirname'])
+        elif '.' not in cmd_dic['dirname'] and os.path.isdir(
+                os.path.join(self.position, cmd_dic['dirname'])):  # '.' not in cmd_dict['dir'] 防止../..输入
+            self.position = os.path.join(self.position, cmd_dic['dirname'])
         else:
             error_tag = True
 
@@ -150,14 +152,14 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         else:
             self.pwd()
 
-    def mkdir(self,*args):  ####创建目录
+    def mkdir(self, *args):  # 创建目录
         try:
             dirname = args[0]['dirname']
-            if dirname.isalnum():  ####判断文件是否只有数字和字母
-                if os.path.exists(os.path.join(self.position,dirname)):
+            if dirname.isalnum():  # 判断文件是否只有数字和字母
+                if os.path.exists(os.path.join(self.position, dirname)):
                     result = 's% have existed' % dirname
                 else:
-                    os.mkdir(os.path.join(self.position,dirname))
+                    os.mkdir(os.path.join(self.position, dirname))
                     result = '%s created success' % dirname
             else:
                 result = 'Illegal character %s, dirname can only by string and num here.' % dirname
@@ -166,10 +168,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
         self.request.send(json.dumps(result).encode('utf-8'))
 
-    def rm(self,*args):  ####删除文件
+    def rm(self, *args):  # 删除文件
         filename = args[0]['filename']
         confirm = args[0]['confirm']
-        file_abspath = os.path.join(self.position,filename)
+        file_abspath = os.path.join(self.position, filename)
         if os.path.isfile(file_abspath):
             if confirm == True:
                 os.remove(file_abspath)
@@ -182,11 +184,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             result = 'File %s not exist!' % filename
         self.request.send(json.dumps(result).encode('utf-8'))
 
-    def rmdir(self,*args):
+    def rmdir(self, *args):
         dirname = args[0]['dirname']
         confirm = args[0]['confirm']
-        dir_abspath = os.path.join(self.position,dirname)
-        if '.' in dirname or '/' in dirname:  ####不能跨目录删除
+        dir_abspath = os.path.join(self.position, dirname)
+        if '.' in dirname or '/' in dirname:  # 不能跨目录删除
             result = 'should not rmdir %s this way' % dirname
         elif os.path.isdir(dir_abspath):
             if confirm == True:
@@ -200,25 +202,25 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             result = 'directory %s not exist!' % dirname
         self.request.send(json.dumps(result).encode('utf-8'))
 
-    def mv(self,*args):  ####实现功能：移动文件，移动目录，文件重命名，目录重命名
+    def mv(self, *args):  # 实现功能：移动文件，移动目录，文件重命名，目录重命名
         try:
             print(args)
             objname = args[0]['objname']
             dstname = args[0]['dstname']
-            obj_abspath = os.path.join(self.position,objname)
-            dst_abspath = os.path.join(self.position,dstname)
+            obj_abspath = os.path.join(self.position, objname)
+            dst_abspath = os.path.join(self.position, dstname)
             if os.path.isfile(obj_abspath):
                 if os.path.isdir(dst_abspath) or not os.path.exists(dst_abspath):
-                    shutil.move(obj_abspath,dst_abspath)
+                    shutil.move(obj_abspath, dst_abspath)
                     result = 'move success'
                 elif os.path.isfile(dst_abspath):
                     result = 'moving cancel,file has been exist.'
             elif os.path.isdir(obj_abspath):
                 if os.path.isdir(dst_abspath) or not os.path.exists(dst_abspath):
-                    shutil.move(obj_abspath,dst_abspath)
+                    shutil.move(obj_abspath, dst_abspath)
                     result = 'move success'
                 elif os.path.isfile(dst_abspath):
-                    result = 'moving cancel,%s is a file.'% dst_abspath
+                    result = 'moving cancel,%s is a file.' % dst_abspath
             else:
                 result = 'nothing done'
             self.request.send(json.dumps(result).encode('utf-8'))
@@ -227,15 +229,15 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             result = 'moving fail,' + e
             self.request.send(json.dumps(result).encode('utf-8'))
 
-    def get(self,*args):  ####发送给客户端文件
+    def get(self, *args):  # 发送给客户端文件
         cmd_dic = args[0]
         filename = cmd_dic['filename']
         filepath = os.path.join(self.position, filename)
         if os.path.isfile(filepath):
             filesize = os.path.getsize(filepath)
-            ####直接调用系统命令取得MD5值，如果使用hashlib，需要写open打开文件-》read读取文件（可能文件大会很耗时）-》m.update计算三部，代码量更多，效率也低
+            # 直接调用系统命令取得MD5值，如果使用hashlib，需要写open打开文件-》read读取文件（可能文件大会很耗时）-》m.update计算三部，代码量更多，效率也低
             # filemd5 = os.popen('md5sum %s' % filepath).read().split()[0]
-            filemd5 = 'a'  ####Windows测试用
+            filemd5 = 'a'  # Windows测试用
             msg = {
                 'action': 'get',
                 'filename': filename,
@@ -246,13 +248,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             # print(msg)
             self.request.send(json.dumps(msg).encode('utf-8'))
             '''接下来发送文件给客户端'''
-            self.request.recv(1024)  ####接收ACK信号，下一步发送文件
+            self.request.recv(1024)  # 接收ACK信号，下一步发送文件
             f = open(filepath, 'rb')
             send_size = 0
             for line in f:
                 send_size += len(line)
                 self.request.send(line)
-                # processbar(send_size, filesize)     ####服务端进度条，不需要可以注释掉
+                # processbar(send_size, filesize)     # 服务端进度条，不需要可以注释掉
             else:
                 print('文件传输完毕')
                 f.close()
@@ -260,24 +262,24 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             print(filepath, '文件未找到')
             self.request.send(json.dumps('Filenotfound').encode('utf-8'))
 
-    def put(self, *args):  ####接收客户端文件
+    def put(self, *args):  # 接收客户端文件
         cmd_dic = args[0]
-        filename = os.path.basename(cmd_dic['filename'])  ####传输进来的文件名可能带有路径，将路径去掉
+        filename = os.path.basename(cmd_dic['filename'])  # 传输进来的文件名可能带有路径，将路径去掉
         filesize = cmd_dic['filesize']
         filemd5 = cmd_dic['filemd5']
         override = cmd_dic['override']
         receive_size = 0
         file_path = os.path.join(self.position, filename)
-        if override != 'True' and os.path.exists(file_path):  ####检测文件是否已经存在
+        if override != 'True' and os.path.exists(file_path):  # 检测文件是否已经存在
             self.request.send(b'file have exits, do nothing!')
         else:
-            if os.path.isfile(file_path):  ####如果文件已经存在，先删除，再计算磁盘空间大小
+            if os.path.isfile(file_path):  # 如果文件已经存在，先删除，再计算磁盘空间大小
                 os.remove(file_path)
-            current_size = self.du()  ####调用du查看用户磁盘空间大小，但是du命令的最后会发送一个结果信息给client，会和前面和后面的信息粘包，需要注意
-            self.request.recv(1024)  ####接收客户端ack信号，防止粘包，代号：P01
+            current_size = self.du()  # 调用du查看用户磁盘空间大小，但是du命令的最后会发送一个结果信息给client，会和前面和后面的信息粘包，需要注意
+            self.request.recv(1024)  # 接收客户端ack信号，防止粘包，代号：P01
             print(self.spacesize, current_size, filesize)
             if self.spacesize >= current_size + filesize:
-                self.request.send(b'begin')  ####发送开始传输信号
+                self.request.send(b'begin')  # 发送开始传输信号
                 f = open(file_path, 'wb')
 
                 while filesize > receive_size:
@@ -288,13 +290,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                     data = self.request.recv(size)
                     f.write(data)
                     receive_size += len(data)
-                    # print(receive_size,len(data))   ####打印每次接收的数据
-                    # processbar(receive_size, filesize)  ####服务端进度条，不需要可以注释掉
+                    # print(receive_size,len(data))   # 打印每次接收的数据
+                    # processbar(receive_size, filesize)  # 服务端进度条，不需要可以注释掉
                 else:
                     print("file [%s] has uploaded..." % filename)
                     f.close()
                 # receive_filemd5 = os.popen('md5sum %s' % file_path).read().split()[0]
-                receive_filemd5 = 'a'  ####windows 测试用
+                receive_filemd5 = 'a'  # windows 测试用
                 print('\r\n', file_path, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                 if receive_filemd5 == filemd5:
                     self.request.send(b'file received successfully!')
@@ -303,21 +305,21 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             else:
                 self.request.send(
                     b'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, filesize:%d' % (
-                        self.spacesize,current_size, self.spacesize - current_size, filesize))
+                        self.spacesize, current_size, self.spacesize - current_size, filesize))
 
-    def newget(self, *args):  ####发送给客户端文件，具有断点续传功能
+    def newget(self, *args):  # 发送给客户端文件，具有断点续传功能
         # print('get receive the cmd',args[0])
         cmd_dic = args[0]
         filename = cmd_dic['filename']
         send_size = cmd_dic['filesize']
         print(filename)
-        # self.request.send(b'server have been ready to send')  ####发送ACK
+        # self.request.send(b'server have been ready to send')  # 发送ACK
         file_path = os.path.join(self.position, filename)
         if os.path.isfile(file_path):
             filesize = os.path.getsize(file_path)
-            ####直接调用系统命令取得MD5值，如果使用hashlib，需要写open打开文件-》read读取文件（可能文件大会很耗时）-》m.update计算三部，代码量更多，效率也低
+            # 直接调用系统命令取得MD5值，如果使用hashlib，需要写open打开文件-》read读取文件（可能文件大会很耗时）-》m.update计算三部，代码量更多，效率也低
             # filemd5 = os.popen('md5sum %s' % file_path).read().split()[0]
-            filemd5 = 'a' #Windows测试用
+            filemd5 = 'a'  # Windows测试用
             msg = {
                 'action': 'newget',
                 'filename': filename,
@@ -326,13 +328,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             }
             print(msg)
             self.request.send(json.dumps(msg).encode('utf-8'))
-            self.request.recv(1024)  ####接收ACK信号，下一步发送文件
+            self.request.recv(1024)  # 接收ACK信号，下一步发送文件
             f = open(file_path, 'rb')
-            f.seek(send_size,0)
+            f.seek(send_size, 0)
             for line in f:
                 send_size += len(line)
                 self.request.send(line)
-                # processbar(send_size, filesize)     ####服务端进度条，不需要可以注释掉
+                # processbar(send_size, filesize)     # 服务端进度条，不需要可以注释掉
             else:
                 print('文件传输完毕')
                 f.close()
@@ -341,25 +343,25 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             print(file_path, '文件未找到')
             self.request.send(json.dumps('Filenotfound').encode('utf-8'))
 
-    def newput(self, *args):  ####接收客户端文件，具有断点续传功能
+    def newput(self, *args):  # 接收客户端文件，具有断点续传功能
         cmd_dict = args[0]
-        filename = os.path.basename(cmd_dict['filename'])  ####传输进来的文件名可能带有路径，将路径去掉
+        filename = os.path.basename(cmd_dict['filename'])  # 传输进来的文件名可能带有路径，将路径去掉
         filesize = cmd_dict['filesize']
         filemd5 = cmd_dict['filemd5']
         tag = cmd_dict['tag']
         receive_size = 0
         file_path = os.path.join(self.position, filename)
-        if os.path.isfile(file_path):  ####检测文件是否已经存在
+        if os.path.isfile(file_path):  # 检测文件是否已经存在
             self.request.send('文件存在'.encode())
-            tag = self.request.recv(1024).decode()  ####接收客户端ack信号
+            tag = self.request.recv(1024).decode()  # 接收客户端ack信号
             if tag == 'o':
-                os.remove(file_path)####如果文件已经存在，先删除，再计算磁盘空间大小
-                self.upload(tag,filename, filemd5, filesize, file_path, receive_size)
+                os.remove(file_path)  # 如果文件已经存在，先删除，再计算磁盘空间大小
+                self.upload(tag, filename, filemd5, filesize, file_path, receive_size)
             elif tag == 'r':
                 exist_file_size = os.path.getsize(file_path)
                 if exist_file_size <= filesize:
                     receive_size = exist_file_size
-                    self.upload(tag,filename, filemd5, filesize, file_path, receive_size)
+                    self.upload(tag, filename, filemd5, filesize, file_path, receive_size)
                 else:
                     print('服务器已存在同名文件且比原文件大')
                     msg = {
@@ -371,24 +373,24 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                     "content": '文件未上传'
                 }
                 self.request.send(json.dumps(msg).encode('utf-8'))
-        else:  ####文件不存在：如果文件不存在的话，就不用管tag了，直接计算磁盘空间，然后上传
+        else:  # 文件不存在：如果文件不存在的话，就不用管tag了，直接计算磁盘空间，然后上传
             self.request.send('文件不存在!'.encode())
-            tag = self.request.recv(1024).decode()  ####接收客户端ack信号
-            self.upload(tag,filename,filemd5,filesize,file_path,receive_size)
+            tag = self.request.recv(1024).decode()  # 接收客户端ack信号
+            self.upload(tag, filename, filemd5, filesize, file_path, receive_size)
 
-    def upload(self,tag,filename,filemd5,filesize,file_path,receive_size):
+    def upload(self, tag, filename, filemd5, filesize, file_path, receive_size):
         current_size = self.du_calc()
-        print('用户总空间：',self.spacesize, '目前剩余空间：',current_size,'文件大小：', filesize)
+        print('用户总空间：', self.spacesize, '目前剩余空间：', current_size, '文件大小：', filesize)
         if tag == 'r':
             needrecv_size = filesize - receive_size
         else:
             needrecv_size = filesize
         if self.spacesize >= current_size + needrecv_size:
             msg = {
-                "position":receive_size,
-                "content":'begin'
+                "position": receive_size,
+                "content": 'begin'
             }
-            self.request.send(json.dumps(msg).encode('utf-8'))   ####发送开始传输信号
+            self.request.send(json.dumps(msg).encode('utf-8'))  # 发送开始传输信号
             if tag == 'r':
                 f = open(file_path, 'ab')
             else:
@@ -401,7 +403,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 data = self.request.recv(size)
                 f.write(data)
                 receive_size += len(data)
-                # processbar(receive_size, filesize)  ####服务端进度条，不需要可以注释掉
+                # processbar(receive_size, filesize)  # 服务端进度条，不需要可以注释掉
             f.close()
             # receive_filemd5 = os.popen('md5sum %s' % file_path).read().split()[0]
             receive_filemd5 = 'a'
@@ -412,35 +414,36 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 self.request.send(b'Error, file received have problems!')
         else:
             msg = {
-                "content":'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, filesize:%d' % (
+                "content": 'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, filesize:%d' % (
                     self.spacesize, current_size, self.spacesize - current_size, filesize)
             }
-            self.request.send(json.dumps(msg).encode('utf-8'))   ##
+            self.request.send(json.dumps(msg).encode('utf-8'))  ##
 
-    def newput2(self, *args):  ####接收客户端文件，具有断点续传功能
+    def newput2(self, *args):  # 接收客户端文件，具有断点续传功能
         cmd_dict = args[0]
-        filename = os.path.basename(cmd_dict['filename'])  ####传输进来的文件名可能带有路径，将路径去掉
+        filename = os.path.basename(cmd_dict['filename'])  # 传输进来的文件名可能带有路径，将路径去掉
         filesize = cmd_dict['filesize']
         filemd5 = cmd_dict['filemd5']
         override = cmd_dict['override']
         receive_size = 0
         file_path = os.path.join(self.position, filename)
         # print(file_path,os.path.isdir(file_path))
-        if override != 'True' and os.path.exists(file_path):  ####检测文件是否已经存在
+        if override != 'True' and os.path.exists(file_path):  # 检测文件是否已经存在
             if os.path.isdir(file_path):
                 self.request.send(b'file have exits, and is a directory, do nothing!')
             elif os.path.isfile(file_path):
                 self.request.send(b'file have exits, do nothing!')
-                resume_signal = self.request.recv(1024)     ####接收客户端发来的是否从文件断点续传的信号
-                if resume_signal == b'ready to resume from break point':           ####执行断点续传功能
+                resume_signal = self.request.recv(1024)  # 接收客户端发来的是否从文件断点续传的信号
+                if resume_signal == b'ready to resume from break point':  # 执行断点续传功能
                     exist_file_size = os.path.getsize(file_path)
                     current_size = self.du()
-                    time.sleep(0.5) ####防止粘包
-                    print('用户空间上限：%d, 当前已用空间：%d, 已存在文件大小：%d, 上传文件大小：%d ' % (self.spacesize,current_size,exist_file_size,filesize))
-                    if self.spacesize >= (current_size - exist_file_size + filesize):  ####判断剩余空间是否足够
+                    time.sleep(0.5)  # 防止粘包
+                    print('用户空间上限：%d, 当前已用空间：%d, 已存在文件大小：%d, 上传文件大小：%d ' % (
+                        self.spacesize, current_size, exist_file_size, filesize))
+                    if self.spacesize >= (current_size - exist_file_size + filesize):  # 判断剩余空间是否足够
                         if exist_file_size < filesize:
                             receive_size = exist_file_size
-                            print('服务器上已存在的文件大小为：',exist_file_size)
+                            print('服务器上已存在的文件大小为：', exist_file_size)
                             msg = {
                                 'state': True,
                                 'position': exist_file_size,
@@ -456,8 +459,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                                 data = self.request.recv(size)
                                 f.write(data)
                                 receive_size += len(data)
-                                # print(receive_size,len(data))   ####打印每次接收的数据
-                                # processbar(receive_size, filesize)  ####服务端进度条，不需要可以注释掉
+                                # print(receive_size,len(data))   # 打印每次接收的数据
+                                # processbar(receive_size, filesize)  # 服务端进度条，不需要可以注释掉
 
                             f.close()
                             receive_filemd5 = os.popen('md5sum %s' % file_path).read().split()[0]
@@ -467,31 +470,33 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                             else:
                                 self.request.send(b'Error, file received have problems!')
 
-                        else:       ####如果上传的文件小于当前服务器上的文件，则为同名但不同文件，不上传。实际还需要增加其他判断条件，判断是否为同一文件。
+                        else:  # 如果上传的文件小于当前服务器上的文件，则为同名但不同文件，不上传。实际还需要增加其他判断条件，判断是否为同一文件。
                             msg = {
                                 'state': False,
                                 'position': '',
                                 'content': 'Error, file mismatch, do nothing!'
                             }
                             self.request.send(json.dumps(msg).encode('utf-8'))
-                    else:       ####如果续传后的用户空间大于上限，拒接续传
+                    else:  # 如果续传后的用户空间大于上限，拒接续传
                         msg = {
                             'state': False,
-                            'position':'',
-                            'content':'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, need_size:%d' % (self.user_spacesize, current_size, self.user_spacesize - current_size, filesize - exist_file_size)
+                            'position': '',
+                            'content': 'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, need_size:%d' % (
+                                self.user_spacesize, current_size, self.user_spacesize - current_size,
+                                filesize - exist_file_size)
                         }
                         self.request.send(json.dumps(msg).encode('utf-8'))
                 else:
                     pass
 
         else:
-            if os.path.isfile(file_path):  ####如果文件已经存在，先删除，再计算磁盘空间大小
+            if os.path.isfile(file_path):  # 如果文件已经存在，先删除，再计算磁盘空间大小
                 os.remove(file_path)
-            current_size = self.du()  ####调用du查看用户磁盘空间大小，但是du命令的最后会发送一个结果信息给client，会和前面和后面的信息粘包，需要注意
-            self.request.recv(1024)  ####接收客户端ack信号，防止粘包，代号：P01
+            current_size = self.du()  # 调用du查看用户磁盘空间大小，但是du命令的最后会发送一个结果信息给client，会和前面和后面的信息粘包，需要注意
+            self.request.recv(1024)  # 接收客户端ack信号，防止粘包，代号：P01
             print(self.spacesize, current_size, filesize)
             if self.spacesize >= current_size + filesize:
-                self.request.send(b'begin')  ####发送开始传输信号
+                self.request.send(b'begin')  # 发送开始传输信号
                 fk = open(file_path, 'wb')
                 while filesize > receive_size:
                     if filesize - receive_size > 1024:
@@ -501,8 +506,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                     data = self.request.recv(size)
                     fk.write(data)
                     receive_size += len(data)
-                    # print(receive_size,len(data))   ####打印每次接收的数据
-                    # processbar(receive_size, filesize)  ####服务端进度条，不需要可以注释掉
+                    # print(receive_size,len(data))   # 打印每次接收的数据
+                    # processbar(receive_size, filesize)  # 服务端进度条，不需要可以注释掉
 
                 fk.close()
                 receive_filemd5 = os.popen('md5sum %s' % file_path).read().split()[0]
@@ -514,4 +519,4 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             else:
                 self.request.send(
                     b'Error, disk space do not enough! Nothing done! Total: %d, current: %d, rest:%d, filesize:%d' % (
-                    self.spacesize, current_size, self.spacesize - current_size, filesize))
+                        self.spacesize, current_size, self.spacesize - current_size, filesize))

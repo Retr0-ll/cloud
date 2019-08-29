@@ -1,11 +1,3 @@
-####os.path.abspath(__file__) 获取当前当前文件的绝对路径
-####os.path.dirname()获取当前文件上一层目录
-import os,sys
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  ####获取当前文件的上一级的上一级目录
-sys.path.append(BASE_DIR)
-
-
-import socketserver
 from ftp_server.core.server import MyTCPHandler
 from ftp_server.core.usermanagement import UserOpr
 from ftp_server.core.server import MySSLThreadingTCPServer
@@ -27,7 +19,7 @@ if __name__ == '__main__':
         elif choice == '1':
             HOST, PORT = "localhost", 9999
             server = MySSLThreadingTCPServer((HOST, PORT), MyTCPHandler)
-            #server = socketserver.ThreadingTCPServer((HOST,PORT),MyTCPHandler)
+            # server = socketserver.ThreadingTCPServer((HOST,PORT),MyTCPHandler)
             server.serve_forever()
         elif choice == '2':
             useropr = UserOpr()
