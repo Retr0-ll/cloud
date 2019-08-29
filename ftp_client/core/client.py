@@ -247,7 +247,7 @@ class FtpClient():
                 if server_response == 'Filenotfound':
                     print('File no found!')
                 else:
-                    print(server_response)
+                    #print(server_response)
                     self.client.send(b'client have been ready to receive')  # 发送信号，防止粘包
                     filesize = server_response['filesize']
                     filemd5 = server_response['filemd5']
@@ -572,5 +572,5 @@ class FtpClient():
         else:
             self.help()
 
-    def close(self):
+    def close(self,*args):
         self.client.close()
