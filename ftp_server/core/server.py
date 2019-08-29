@@ -1,5 +1,3 @@
-# Author:Zheng Na
-
 import socketserver, sys, json, os, time, shutil, hashlib
 from socketserver import ThreadingTCPServer
 from ftp_server.core import common, settings
@@ -116,7 +114,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.request.send(json.dumps(result).encode('utf-8'))
 
     def ls(self, *args):  # 列出当前目录下的所有文件信息，类型，字节数，生成时间
-        result = ['%-35s%-7s%-10s%-23s' % ('filename', 'type', 'bytes', 'creationtime')]  # 信息标题 #没看懂
+        result = ['%-35s%-7s%-10s%-23s' % ('filename', 'type', 'bytes', 'creationtime')]  # 信息标题
         for f in os.listdir(self.position):
             f_abspath = os.path.join(self.position, f)  # 给出文件的绝对路径，不然程序会找不到文件
             if os.path.isdir(f_abspath):
@@ -150,7 +148,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.request.send(json.dumps(result).encode('utf-8'))
         return totalsize
 
-    def cd(self, *args):  # 切换目录，这个函数实在是没怎么看懂
+    def cd(self, *args):  # 切换目录
         print(*args)
         user_homedir = os.path.join(settings.file_dir, self.username)
         cmd_dic = args[0]

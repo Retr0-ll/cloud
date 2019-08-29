@@ -271,7 +271,7 @@ class FtpClient():
                     f.close()
                     # receive_filemd5 = os.popen('md5sum %s' % filepath).read().split()[0]
                     receive_filemd5 = 'a'  # Windows测试用
-                    print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
+                    # print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                     if receive_filemd5 == filemd5:
                         print('文件接收完成！')
                     else:
@@ -403,7 +403,7 @@ class FtpClient():
                     f.close()
                     # receive_filemd5 = os.popen('md5sum %s' % filepath).read().split()[0]
                     receive_filemd5 = 'a'  # Windows测试用
-                    print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
+                    # print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                     if receive_filemd5 == filemd5:
                         print('文件接收完成！')
                     else:
@@ -490,7 +490,7 @@ class FtpClient():
         else:
             self.help()
 
-    def newput2(self, *args):  # 上传文件，具有断点续传功能，网友写的，与我写的newput功能差不多
+    def newput2(self, *args):  # 上传文件，具有断点续传功能
         cmd_split = args[0].split()
         override = cmd_split[-1]  # override：是否覆盖参数,放在最后一位
         if override != 'True':
