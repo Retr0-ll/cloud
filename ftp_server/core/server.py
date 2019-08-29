@@ -18,7 +18,7 @@ def processbar(part, total):  # 进度条，运行会导致程序变慢
     if total != 0:
         done = int(50 * part / total)
         sys.stdout.write("\r[%s%s]" % ('█' * done, '  ' * (50 - done)))  # 注意：一个方块对应2个空格
-        sys.stdout.write('{:.2%}'.format(part / total) + ' ' * 3 + str(part) + '/' + str(total))
+        sys.stdout.write('{:.2%}'.format(part / total) + ' ' * 3 + str(part) + '/' + str(total) + 'bytes')
         sys.stdout.flush()
 
 
@@ -65,7 +65,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             print(self.data.decode())
             # logging.info(self.client_address)
             if not self.data:
-                print(self.client_address, "断开了")
+                print(self.client_address, "断开")
                 break
             cmd_dic = json.loads(self.data.decode('utf-8'))
             # print(cmd_dic)
@@ -111,22 +111,23 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
     def pwd(self, *args):  # 查看当前目录
         current_position = self.position
         result = current_position.replace(settings.file_dir, '')  # 截断目录信息，使用户只能看到自己的家目录信息
+        result = "[当前目录：" + result + "]"
         print(result)
         self.request.send(json.dumps(result).encode('utf-8'))
 
     def ls(self, *args):  # 列出当前目录下的所有文件信息，类型，字节数，生成时间
-        result = ['%-20s%-7s%-10s%-23s' % ('filename', 'type', 'bytes', 'creationtime')]  # 信息标题 #没看懂
+        result = ['%-35s%-7s%-10s%-23s' % ('filename', 'type', 'bytes', 'creationtime')]  # 信息标题 #没看懂
         for f in os.listdir(self.position):
             f_abspath = os.path.join(self.position, f)  # 给出文件的绝对路径，不然程序会找不到文件
             if os.path.isdir(f_abspath):
-                type = 'd'
+                type = '-dir-'
             elif os.path.isfile(f_abspath):
-                type = 'f'
+                type = '-file-'
             else:
                 type = 'unknown'
             fsize = os.path.getsize(f_abspath)
             ftime = timestamp_to_formatstringtime(os.path.getctime(f_abspath))
-            result.append('%-20s%-7s%-10s%-23s' % (f, type, fsize, ftime))
+            result.append('%-35s%-7s%-10s%-23s' % (f, type, fsize, ftime))
         self.request.send(json.dumps(result).encode('utf-8'))
 
     def du_calc(self):  # 注意不能使用os.path.getsize('D:\python-study\s14')返回的是所有目录大小的和
@@ -144,7 +145,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
     def du(self, *args):  # 查看当前目录大小
         totalsize = self.du_calc()
-        result = 'current directory total sizes: %d' % totalsize
+        result = '[当前目录已使用: %d bytes]' % totalsize
         print(result)
         self.request.send(json.dumps(result).encode('utf-8'))
         return totalsize

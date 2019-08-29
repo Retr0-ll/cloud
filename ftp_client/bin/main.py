@@ -3,10 +3,12 @@ from ftp_client.core.client import FtpClient
 
 if __name__ == '__main__':
     mainpage = '''
+**************************
     主页
         1、注册
         2、登录
         退出请按q
+**************************
     '''
 
     ftp = FtpClient()

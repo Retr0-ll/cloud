@@ -5,10 +5,12 @@ from ftp_server.core.server import MySSLThreadingTCPServer
 if __name__ == '__main__':
 
     mainpage = '''
+**************************
     主页
         1、启动服务器
         2、进入用户管理
         退出请按q
+**************************
     '''
 
     while True:

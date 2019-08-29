@@ -20,7 +20,7 @@ def processbar(part, total):  # 进度条，运行会导致程序变慢
         sys.stdout.flush()
 
 
-class FtpClient(object):
+class FtpClient():
     def __init__(self):
         self.ori_client = socket.socket()
         # self.client = socket.socket()
@@ -54,10 +54,10 @@ class FtpClient(object):
         server_response = self.client.recv(1024).decode('utf-8')
         logging.info(server_response)
         if server_response == 'ok':
-            print("注册成功！")
+            print("注册成功！\n")
             return True
         else:
-            print(server_response)
+            print(server_response + '\n')
             return False
 
     def auth(self):  # 用户认证
@@ -74,16 +74,17 @@ class FtpClient(object):
         server_response = self.client.recv(1024).decode('utf-8')
         logging.info(server_response)
         if server_response == 'ok':
-            print("认证通过！")
+            print("认证通过！\n")
             return True
         else:
-            print(server_response)
+            print(server_response + "\n")
             return False
 
     def interactive(self):  # 交互
+        self.help()
         while True:
-            self.pwd('pwd')  # 打印家目录
-            cmd = input(">> ").strip()
+            #self.pwd('pwd')  # 打印家目录
+            cmd = input("PAN >> ").strip()
             if len(cmd) == 0: continue
             cmd_str = cmd.split()[0]  # 用户输入的第一个值必定是命令
             if hasattr(self, cmd_str):  # 反射：判断一个对象中是否有字符串对应的方法或属性
@@ -93,7 +94,7 @@ class FtpClient(object):
                 self.help()
 
     def help(self, *args):  # 帮助
-        msg = '''
+        msg = '''*****************************************************************************************
          仅支持如下命令：
          ls
          du
@@ -103,10 +104,11 @@ class FtpClient(object):
          rm  filename
          rmdir dirname
          mv filename/dirname filename/dirname  
-         get filename [True] (True代表覆盖)
-         put filename [True] (True代表覆盖)
+         get filename
+         put filename
          newget filename [o/r] (后续增加的新功能，支持断点续传,o代表覆盖，r代表断点续传)
          newput filename [o/r] (后续增加的新功能，支持断点续传,o代表覆盖，r代表断点续传)
+*****************************************************************************************
          '''
         print(msg)
 
@@ -122,7 +124,9 @@ class FtpClient(object):
         cmd_split = args[0].split()
         if len(cmd_split) == 1:
             msg = {'action': 'ls'}
+            print("---------------------------------------------------------")
             self.exec_linux_cmd(msg)
+            print("---------------------------------------------------------\n")
         else:
             self.help()
 
@@ -329,7 +333,6 @@ class FtpClient(object):
                             send_size += len(line)
                             processbar(send_size, filesize)
                         else:
-                            print('\r\n', "file upload success...")
                             f.close()
                             server_response = self.client.recv(1024).decode('utf-8')
                             print(server_response)
