@@ -1,6 +1,7 @@
 import socket, os, json, hashlib, sys, time, logging
 import ftp_client.core.settings as settings
 import ssl
+import getpass
 
 from arc4 import ARC4
 
@@ -41,7 +42,7 @@ class FtpClient():
 
     def register(self):
         username = input("请输入用户名>>>:").strip()
-        # password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
+        #password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
         password = input("请输入密码>>>:").strip()  # Windows测试用
         # password = hashmd5(password)
         msg = {
@@ -62,7 +63,7 @@ class FtpClient():
 
     def auth(self):  # 用户认证
         username = input("请输入用户名>>>:").strip()
-        # password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
+        #password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
         password = input("请输入密码>>>:").strip()  # Windows测试用
         # password = hashmd5(password)
         msg = {
@@ -382,12 +383,19 @@ class FtpClient():
                         f = open(filepath, 'ab+')  # 用于断点续传
                     else:
                         f = open(filepath, 'wb+')  # 用于覆盖或者新生成文件
+
+                    key = input("请输入之前上传存储此文件时使用的文件密码>>>:").strip()
+                    key = hashmd5(key)[5:-5] + key
+                    rc4_ = ARC4(key)
+                    rc4_.decrypt(os.urandom(receive_size))
+
                     while filesize > receive_size:
                         if filesize - receive_size > 1024:
                             size = 1024
                         else:
                             size = filesize - receive_size
                         data = self.client.recv(size)
+                        data = rc4_.decrypt(data)
                         f.write(data)
                         receive_size += len(data)
                         # print(receive_size, len(data))  # 打印数据流情况
@@ -456,9 +464,17 @@ class FtpClient():
                         f = open(filepath, 'rb')
                         f.seek(position, 0)
                         send_size = position
+
+                        key = input("请输入上传存储此文件的密码>>>:").strip()
+                        key = hashmd5(key)[5:-5] + key
+                        rc4_ = ARC4(key)
+                        rc4_.encrypt(os.urandom(position))
+
                         for line in f:
-                            send_size += len(line)
+                            line = rc4_.encrypt(line)
                             self.client.send(line)
+
+                            send_size += len(line)
                             processbar(send_size, filesize)
                         else:
                             print('\n', "file upload success...")
