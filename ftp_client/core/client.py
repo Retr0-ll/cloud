@@ -28,7 +28,7 @@ class FtpClient():
         # self.client = socket.socket()
 
     def sslsock(self):  # 将socket打包成ssl_socket
-        CA_FILE = "D:/python_project/cbjsb/ftp_client/bin/ca.crt"
+        CA_FILE = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "bin/ca.crt")
 
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
         context.check_hostname = False
