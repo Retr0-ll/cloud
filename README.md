@@ -15,4 +15,4 @@
 ``python ./ftp_server/bin/main.py``
 
 # 启动客户端
-``python ./ftp_client/bin/main.py``
+``python ./cli_start.py``
