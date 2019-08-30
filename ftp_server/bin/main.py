@@ -4,14 +4,14 @@ from ftp_server.core.server import MySSLThreadingTCPServer
 
 if __name__ == '__main__':
 
-    mainpage = '''
+    mainpage = '''\033[1;34m
 **************************
     主页
         1、启动服务器
         2、进入用户管理
         退出请按q
 **************************
-    '''
+    \033[0m'''
 
     while True:
         print('\033[1;35m{}\033[0m'.format(mainpage))

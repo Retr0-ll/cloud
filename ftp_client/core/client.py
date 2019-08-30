@@ -4,7 +4,8 @@ import ssl
 import getpass
 
 from arc4 import ARC4
-
+from colorama import init,Fore
+init(autoreset=True)
 
 def hashmd5(*args):  # MD5加密
     m = hashlib.md5()
@@ -17,7 +18,7 @@ def processbar(part, total):  # 进度条，运行会导致程序变慢
     if total != 0:
         # done = int(50 * part / total)
         # sys.stdout.write("\r[%s%s]" % ('█' * done, '  ' * (50 - done)))  # 注意：一个方块对应2个空格
-        sys.stdout.write('\r{:.2%}'.format(part / total) + ' ' * 3 + str(part) + '/' + str(total))
+        sys.stdout.write(Fore.LIGHTBLUE_EX + '\r{:.2%}'.format(part / total) + ' ' * 3 + str(part) + '/' + str(total) + ' [bytes]')
         sys.stdout.flush()
 
 
@@ -27,7 +28,7 @@ class FtpClient():
         # self.client = socket.socket()
 
     def sslsock(self):  # 将socket打包成ssl_socket
-        CA_FILE = "ca.crt"
+        CA_FILE = "D:/python_project/cbjsb/ftp_client/bin/ca.crt"
 
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
         context.check_hostname = False
@@ -42,8 +43,8 @@ class FtpClient():
 
     def register(self):
         username = input("请输入用户名>>>:").strip()
-        #password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
-        password = input("请输入密码>>>:").strip()  # Windows测试用
+        password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
+        #password = input("请输入密码>>>:").strip()  # Windows测试用
         # password = hashmd5(password)
         msg = {
             'action': 'register',
@@ -63,8 +64,8 @@ class FtpClient():
 
     def auth(self):  # 用户认证
         username = input("请输入用户名>>>:").strip()
-        #password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
-        password = input("请输入密码>>>:").strip()  # Windows测试用
+        password = getpass.getpass("请输入密码>>>:").strip()  # 在linux上输入密码不显示，此模块在pycharm中无法使用
+        #password = input("请输入密码>>>:").strip()  # Windows测试用
         # password = hashmd5(password)
         msg = {
             'action': 'auth',
@@ -85,7 +86,8 @@ class FtpClient():
         self.help()
         while True:
             #self.pwd('pwd')  # 打印家目录
-            cmd = input("PAN >> ").strip()
+            print(Fore.RED + "\n@PAN >>", end='')
+            cmd = input().strip()
             if len(cmd) == 0: continue
             cmd_str = cmd.split()[0]  # 用户输入的第一个值必定是命令
             if hasattr(self, cmd_str):  # 反射：判断一个对象中是否有字符串对应的方法或属性
@@ -95,22 +97,21 @@ class FtpClient():
                 self.help()
 
     def help(self, *args):  # 帮助
-        msg = '''*****************************************************************************************
-         仅支持如下命令：
+        msg = Fore.BLUE + '''*****************************************************************************************
+         支持如下命令：
          ls
          du
          pwd
-         cd dirname/cd ./cd ..
+         cd 
          mkdir dirname
          rm  filename
          rmdir dirname
          mv filename/dirname filename/dirname  
          get filename
          put filename
-         newget filename [o/r] (后续增加的新功能，支持断点续传,o代表覆盖，r代表断点续传)
-         newput filename [o/r] (后续增加的新功能，支持断点续传,o代表覆盖，r代表断点续传)
-*****************************************************************************************
-         '''
+         newget filename (断点下载)
+         newput filename (断点上传)
+*****************************************************************************************'''
         print(msg)
 
     def pwd(self, *args):  # 查看当前目录
@@ -125,9 +126,9 @@ class FtpClient():
         cmd_split = args[0].split()
         if len(cmd_split) == 1:
             msg = {'action': 'ls'}
-            print("---------------------------------------------------------")
+            print("+-------------------------+-------+----------+-----------------------+")
             self.exec_linux_cmd(msg)
-            print("---------------------------------------------------------\n")
+            print("+-------------------------+-------+----------+-----------------------+")
         else:
             self.help()
 
@@ -211,6 +212,7 @@ class FtpClient():
         self.client.send(json.dumps(dict_info).encode('utf-8'))
         server_response = json.loads(self.client.recv(4096).decode('utf-8'))
         if isinstance(server_response, list):  # 判断是否为list类型
+            server_response.insert(1, "+-------------------------+-------+----------+-----------------------+")
             for i in server_response:
                 print(i)
         else:
@@ -247,13 +249,13 @@ class FtpClient():
                 if server_response == 'Filenotfound':
                     print('File no found!')
                 else:
-                    print(server_response)
+                    #print(server_response)
                     self.client.send(b'client have been ready to receive')  # 发送信号，防止粘包
                     filesize = server_response['filesize']
                     filemd5 = server_response['filemd5']
                     receive_size = 0
 
-                    key = input("请输入之前上传存储此文件时使用的文件密码>>>:").strip()
+                    key = getpass.getpass("请输入之前上传存储此文件时使用的文件密码>>>:").strip()
                     key = hashmd5(key)[5:-5] + key
                     rc4_ = ARC4(key)
 
@@ -273,7 +275,7 @@ class FtpClient():
                     receive_filemd5 = 'a'  # Windows测试用
                     # print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                     if receive_filemd5 == filemd5:
-                        print('文件接收完成！')
+                        print('\n文件接收完成！')
                     else:
                         print('Error,文件接收异常！')
         else:
@@ -321,7 +323,7 @@ class FtpClient():
                     print(server_response)  # 注意：用于打印服务器反馈信息，例如磁盘空间不足信息，不能取消
                     if server_response == 'begin':
 
-                        key = input("请输入上传存储此文件的密码>>>:").strip()
+                        key = getpass.getpass("请输入上传存储此文件的密码>>>:").strip()
                         key = hashmd5(key)[5:-5] + key
                         rc4 = ARC4(key)
 
@@ -374,7 +376,7 @@ class FtpClient():
                 if server_response == 'Filenotfound':
                     print('File no found!')
                 else:
-                    print(server_response)
+                    #print(server_response)
                     self.client.send(b'client have been ready to receive')  # 发送信号，防止粘包
                     filesize = server_response['filesize']
                     filemd5 = server_response['filemd5']
@@ -384,7 +386,7 @@ class FtpClient():
                     else:
                         f = open(filepath, 'wb+')  # 用于覆盖或者新生成文件
 
-                    key = input("请输入之前上传存储此文件时使用的文件密码>>>:").strip()
+                    key = getpass.getpass("请输入之前上传存储此文件时使用的文件密码>>>:").strip()
                     key = hashmd5(key)[5:-5] + key
                     rc4_ = ARC4(key)
                     rc4_.decrypt(os.urandom(receive_size))
@@ -442,7 +444,7 @@ class FtpClient():
                 self.client.send(json.dumps(msg).encode('utf-8'))  # 发送msg
                 server_response1 = self.client.recv(1024).decode()  # 接收文件存在或者文件不存在
                 # logging.info(server_response)
-                print(server_response1)
+                #print(server_response1)
 
                 if server_response1 == '文件存在':  # 再确认一遍tag
                     if tag == 'unknown':
@@ -465,7 +467,7 @@ class FtpClient():
                         f.seek(position, 0)
                         send_size = position
 
-                        key = input("请输入上传存储此文件的密码>>>:").strip()
+                        key = getpass.getpass("请输入上传存储此文件的密码>>>:").strip()
                         key = hashmd5(key)[5:-5] + key
                         rc4_ = ARC4(key)
                         rc4_.encrypt(os.urandom(position))
@@ -477,10 +479,10 @@ class FtpClient():
                             send_size += len(line)
                             processbar(send_size, filesize)
                         else:
-                            print('\n', "file upload success...")
+                            print('\n', "file uploaded successfully")
                             f.close()
                             server_response3 = self.client.recv(1024).decode('utf-8')  # 服务端对比md5后发送是否成功接收文件，成功或失败
-                            print(server_response3)
+                            #print(server_response3)
                     else:
                         print(content)  # content:服务器已存在同名文件 或。。。
                 else:
@@ -572,5 +574,6 @@ class FtpClient():
         else:
             self.help()
 
-    def close(self):
+    def close(self, *args):
         self.client.close()
+        exit()

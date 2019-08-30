@@ -1,8 +1,11 @@
 import socketserver, sys, json, os, time, shutil, hashlib
+import ssl
+
 from socketserver import ThreadingTCPServer
 from ftp_server.core import common, settings
 from ftp_server.core import usermanagement
-import ssl
+from colorama import init,Fore
+init(autoreset=True)
 
 
 def hashmd5(*args):  # MD5加密
@@ -114,7 +117,9 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         self.request.send(json.dumps(result).encode('utf-8'))
 
     def ls(self, *args):  # 列出当前目录下的所有文件信息，类型，字节数，生成时间
-        result = ['%-35s%-7s%-10s%-23s' % ('filename', 'type', 'bytes', 'creationtime')]  # 信息标题
+        result = [Fore.RED + '|%-25s|%-7s|%-10s|%-23s|' % ('filename', 'type', 'bytes', 'creationtime')]  # 信息标题
+        #result = ["{0:{4}<25}{1:<10}{2:<10}{3:<23}".format('filename', 'type', 'bytes', 'creationtime', chr(12288))]
+        #result = ["filename".ljust(30) + "{:<7}{:<10}{:<23}".format('type', 'bytes', 'creationtime')]
         for f in os.listdir(self.position):
             f_abspath = os.path.join(self.position, f)  # 给出文件的绝对路径，不然程序会找不到文件
             if os.path.isdir(f_abspath):
@@ -125,7 +130,9 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 type = 'unknown'
             fsize = os.path.getsize(f_abspath)
             ftime = timestamp_to_formatstringtime(os.path.getctime(f_abspath))
-            result.append('%-35s%-7s%-10s%-23s' % (f, type, fsize, ftime))
+            result.append('|%-25s|%-7s|%-10s|%-23s|' % (f, type, fsize, ftime))
+            #result.append("{0:{4}<25}{1:<10}{2:<10}{3:<23}".format(f, type, fsize, ftime, chr(12288)))
+            #result.append(f.ljust(30) + "{:<7}{:<10}{:<23}".format(type, fsize, ftime))
         self.request.send(json.dumps(result).encode('utf-8'))
 
     def du_calc(self):  # 注意不能使用os.path.getsize('D:\python-study\s14')返回的是所有目录大小的和
@@ -320,7 +327,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 receive_filemd5 = 'a'  # windows 测试用
                 print('\r\n', file_path, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                 if receive_filemd5 == filemd5:
-                    self.request.send(b'file received successfully!')
+                    self.request.send(b'\nfile received successfully!')
                 else:
                     self.request.send(b'Error, file received have problems!')
             else:
@@ -430,7 +437,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             receive_filemd5 = 'a'
             print('\r\n', filename, 'md5:', receive_filemd5, '原文件md5:', filemd5)
             if receive_filemd5 == filemd5:
-                self.request.send(b'file received successfully!')
+                self.request.send(b'\nfile received successfully!')
             else:
                 self.request.send(b'Error, file received have problems!')
         else:
@@ -487,7 +494,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                             receive_filemd5 = os.popen('md5sum %s' % file_path).read().split()[0]
                             print('\r\n', file_path, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                             if receive_filemd5 == filemd5:
-                                self.request.send(b'file received successfully!')
+                                self.request.send(b'\nfile received successfully!')
                             else:
                                 self.request.send(b'Error, file received have problems!')
 
@@ -534,7 +541,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 receive_filemd5 = os.popen('md5sum %s' % file_path).read().split()[0]
                 print('\r\n', file_path, 'md5:', receive_filemd5, '原文件md5:', filemd5)
                 if receive_filemd5 == filemd5:
-                    self.request.send(b'file received successfully!')
+                    self.request.send(b'\nfile received successfully!')
                 else:
                     self.request.send(b'Error, file received have problems!')
             else:
